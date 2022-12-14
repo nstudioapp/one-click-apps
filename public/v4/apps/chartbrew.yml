@@ -1,0 +1,114 @@
+captainVersion: 4
+
+services:
+  #Chartbrew
+  $$cap_appname-db:
+    image: mysql:5.7
+    restart: always
+    environment:
+      MYSQL_DATABASE: $$cap_cb_db_name
+      MYSQL_USER: $$cap_cb_db_username
+      MYSQL_PASSWORD: $$cap_cb_db_password
+      MYSQL_ALLOW_EMPTY_PASSWORD: 1
+    ports:
+      - 3306:3306
+    volumes:
+      - $$cap_appname-db:/var/lib/mysql
+
+  $$cap_appname:
+    image: razvanilin/chartbrew:latest
+    restart: always
+    environment:
+      CB_SECRET: $$cap_cb_secret
+      CB_API_HOST: $$cap_cb_api_host
+      CB_API_PORT: $$cap_cb_api_port
+      CB_DB_DIALECT: $$cap_cb_db_dialect
+      CB_DB_HOST: $$cap_cb_db_host
+      CB_DB_PORT: $$cap_cb_db_port
+      CB_DB_NAME: $$cap_cb_db_name
+      CB_DB_USERNAME: $$cap_cb_db_username
+      CB_DB_PASSWORD: $$cap_cb_db_password
+      REACT_APP_CLIENT_HOST: $$cap_cb_react_app_client_host
+      REACT_APP_API_HOST: $$cap_cb_react_app_api_host
+    ports:
+      - 4018:4018
+      - 4019:4019
+    expose:
+      - 4018
+      - 4019
+    depends_on:
+      - $$cap_appname-db
+    links:
+      - $$cap_appname-db
+
+volumes:
+  $$cap_appname-db:
+
+caproverOneClickApp:
+  variables:
+    - id: $$cap_cb_secret
+      label: 'Chartbrew Secret'
+      description: 'Check out their Docker page for the valid tags https://hub.docker.com/r/library/adminer/tags/'
+      defaultValue: '4'
+      validRegex: /^([^\s^\/])+$/
+    - id: $$cap_cb_api_host
+      label: 'API Host'
+      defaultValue: '0.0.0.0'
+      description: ''
+      validRegex: /^([a-zA-Z0-9-.])*$/
+    - id: $$cap_cb_api_port
+      label: 'API Port'
+      defaultValue: '4'
+      description: ''
+      validRegex: /^([a-zA-Z0-9-.])*$/
+    - id: $$cap_cb_db_dialect
+      label: 'Database Dialect'
+      defaultValue: 'mysql'
+      description: 'mysql or postgres'
+      validRegex: /^([a-zA-Z0-9-.])*$/
+    - id: $$cap_cb_db_host
+      label: 'Database Host'
+      defaultValue: 'host.docker.internal'
+      description: ''
+      validRegex: /^([a-zA-Z0-9-.])*$/
+    - id: $$cap_cb_db_port
+      label: 'Database Port'
+      defaultValue: '3306'
+      description: ''
+      validRegex: /^([a-zA-Z0-9-.])*$/
+    - id: $$cap_cb_db_name
+      label: 'Database Name'
+      defaultValue: 'chartbrew'
+      description: ''
+      validRegex: /^([a-zA-Z0-9-.])*$/
+    - id: $$cap_cb_db_username
+      label: 'Database User'
+      defaultValue: 'root'
+      description: ''
+      validRegex: /^([a-zA-Z0-9-.])*$/
+    - id: $$cap_cb_db_password
+      label: 'Database Password'
+      defaultValue: 'password'
+      description: ''
+      validRegex: /^([a-zA-Z0-9-.])*$/
+    - id: $$cap_cb_react_app_client_host
+      label: 'React App Client Host'
+      defaultValue: 'http://localhost:4018'
+      description: ''
+      validRegex: /^([a-zA-Z0-9-.])*$/
+    - id: $$cap_cb_react_app_api_host
+      label: 'React App API Host'
+      defaultValue: 'http://localhost:4019'
+      validRegex: /^([a-zA-Z0-9-.\s])*$/
+  instructions:
+    start: >-
+      Adminer (formerly phpMinAdmin) is a full-featured database management tool written in PHP. Conversely to phpMyAdmin, it consist of a single file ready to deploy to the target server. Adminer is available for MySQL, PostgreSQL, SQLite, MS SQL, Oracle, Firebird, SimpleDB, Elasticsearch and MongoDB. 
+      
+      For more details, see: https://github.com/vrana/adminer
+      
+      Enter your Adminer Configuration parameters and click on next. It will take about a minute for the process to finish.
+    end: Chartbrew is deployed and available as $$cap_appname
+  displayName: Chartbrew
+  isOfficial: true
+  description: Interactive dashboards and client reports
+  documentation: 'https://docs.chartbrew.com/'

@@ -1,0 +1,89 @@
+captainVersion: 4
+services:
+  $$cap_appname-init:
+    image: airbyte/init:${VERSION}
+    build:
+      dockerfile: Dockerfile
+      context: airbyte-config/init
+      labels:
+        io.airbyte.git-revision: ${GIT_REVISION}
+  bootloader:
+    image: airbyte/bootloader:${VERSION}
+    build:
+      dockerfile: Dockerfile
+      context: airbyte-bootloader
+      labels:
+        io.airbyte.git-revision: ${GIT_REVISION}
+  $$cap_appname-db:
+    image: airbyte/db:${VERSION}
+    build:
+      dockerfile: Dockerfile
+      context: airbyte-db/db-lib
+      labels:
+        io.airbyte.git-revision: ${GIT_REVISION}
+  $$cap_appname-worker:
+    image: airbyte/worker:${VERSION}
+    build:
+      dockerfile: Dockerfile
+      context: airbyte-workers
+      labels:
+        io.airbyte.git-revision: ${GIT_REVISION}
+  $$cap_appname-connector-builder-server:
+    image: airbyte/connector-builder-server:${VERSION}
+    build:
+      dockerfile: Dockerfile
+      context: airbyte-connector-builder-server
+      labels:
+        io.airbyte.git-revision: ${GIT_REVISION}
+  $$cap_appname-server:
+    image: airbyte/server:${VERSION}
+    build:
+      dockerfile: Dockerfile
+      context: airbyte-server
+      labels:
+        io.airbyte.git-revision: ${GIT_REVISION}
+  $$cap_appname-webapp:
+    image: airbyte/webapp:${VERSION}
+    build:
+      dockerfile: Dockerfile
+      context: airbyte-webapp
+      labels:
+        io.airbyte.git-revision: ${GIT_REVISION}
+  $$cap_appname-temporal:
+    image: airbyte/temporal:${VERSION}
+    build:
+      dockerfile: Dockerfile
+      context: airbyte-temporal
+      labels:
+        io.airbyte.git-revision: ${GIT_REVISION}
+  $$cap_appname-container-orchestrator:
+    image: airbyte/container-orchestrator:${VERSION}
+    build:
+      dockerfile: Dockerfile
+      context: airbyte-container-orchestrator
+      labels:
+        io.airbyte.git-revision: ${GIT_REVISION}
+  $$cap_appname-metric-reporter:
+    image: airbyte/metrics-reporter:${VERSION}
+    build:
+      dockerfile: Dockerfile
+      context: airbyte-metrics/reporter
+      labels:
+        io.airbyte.git-revision: ${GIT_REVISION}
+
+caproverOneClickApp:
+  variables:
+    - id: $$cap_airbyte_env
+      label: 'Airbyte ENV'
+      defaultValue: ''
+      validRegex: /^([a-zA-Z0-9-.\s])*$/
+  instructions:
+    start: >-
+      Data integration is made simple, secure, and extensible. The new open-source standard to sync data from applications, APIs & databases to warehouses, lakes & other destinations.
+
+      Airbyte is on a mission to make data integration pipelines a commodity.
+    end: AirByte is deployed and available as $$cap_appname
+  displayName: Chartbrew
+  isOfficial: true
+  description: Interactive dashboards and client reports
+  documentation: 'https://github.com/airbytehq/airbyte/tree/e378d40236b6a34e1c1cb481c8952735ec687d88/docs'
