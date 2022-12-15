@@ -1,89 +1,288 @@
 captainVersion: 4
 services:
+  # hook in case we need to add init behavior
+  # every root service (no depends_on) should depend on init
   $$cap_appname-init:
-    image: airbyte/init:${VERSION}
-    build:
-      dockerfile: Dockerfile
-      context: airbyte-config/init
-      labels:
-        io.airbyte.git-revision: ${GIT_REVISION}
-  bootloader:
-    image: airbyte/bootloader:${VERSION}
-    build:
-      dockerfile: Dockerfile
-      context: airbyte-bootloader
-      labels:
-        io.airbyte.git-revision: ${GIT_REVISION}
+    image: airbyte/init:$$cap_airbyte_version
+    container_name: init
+    command: /bin/sh -c "./scripts/create_mount_directories.sh /local_parent /tmp /tmp/airbyte_local"
+    environment:
+      - LOCAL_ROOT=/tmp/airbyte_local
+      - HACK_LOCAL_ROOT_PARENT=/tmp
+    volumes:
+      - /tmp:/local_parent
+  $$cap_appname-bootloader:
+    image: airbyte/bootloader:$$cap_airbyte_version
+    container_name: airbyte-bootloader
+    environment:
+      - AIRBYTE_VERSION=$$cap_airbyte_version
+      - CONFIG_DATABASE_PASSWORD=${CONFIG_DATABASE_PASSWORD:-}
+      - CONFIG_DATABASE_URL=jdbc:postgresql://srv-captain--$$cap_appname-db/$$cap_airbyte_db_name
+      - CONFIG_DATABASE_USER=${CONFIG_DATABASE_USER:-}
+      - DATABASE_PASSWORD=$$cap_airbyte_db_password
+      - DATABASE_URL=jdbc:postgresql://srv-captain--$$cap_appname-db/$$cap_airbyte_db_name
+      - DATABASE_USER=$$cap_airbyte_db_username
+      - LOG_LEVEL=INFO
+      - RUN_DATABASE_MIGRATION_ON_STARTUP=${RUN_DATABASE_MIGRATION_ON_STARTUP}
+    networks:
+      - airbyte_internal
   $$cap_appname-db:
-    image: airbyte/db:${VERSION}
-    build:
-      dockerfile: Dockerfile
-      context: airbyte-db/db-lib
-      labels:
-        io.airbyte.git-revision: ${GIT_REVISION}
+    image: airbyte/db:$$cap_airbyte_version
+    container_name: airbyte-db
+    restart: unless-stopped
+    environment:
+      - CONFIG_DATABASE_PASSWORD=${CONFIG_DATABASE_PASSWORD:-}
+      - CONFIG_DATABASE_URL=jdbc:postgresql://srv-captain--$$cap_appname-db/$$cap_airbyte_db_name
+      - CONFIG_DATABASE_USER=${CONFIG_DATABASE_USER:-}
+      - DATABASE_PASSWORD=$$cap_airbyte_db_password
+      - DATABASE_URL=jdbc:postgresql://srv-captain--$$cap_appname-db/$$cap_airbyte_db_name
+      - DATABASE_USER=$$cap_airbyte_db_username
+      - POSTGRES_PASSWORD=$$cap_airbyte_db_password
+      - POSTGRES_USER=$$cap_airbyte_db_username
+    volumes:
+      - db:/var/lib/postgresql/data
+    networks:
+      - airbyte_internal
   $$cap_appname-worker:
-    image: airbyte/worker:${VERSION}
-    build:
-      dockerfile: Dockerfile
-      context: airbyte-workers
-      labels:
-        io.airbyte.git-revision: ${GIT_REVISION}
-  $$cap_appname-connector-builder-server:
-    image: airbyte/connector-builder-server:${VERSION}
-    build:
-      dockerfile: Dockerfile
-      context: airbyte-connector-builder-server
-      labels:
-        io.airbyte.git-revision: ${GIT_REVISION}
+    image: airbyte/worker:$$cap_airbyte_version
+    container_name: airbyte-worker
+    restart: unless-stopped
+    environment:
+      - AIRBYTE_VERSION=$$cap_airbyte_version
+      - AUTO_DISABLE_FAILING_CONNECTIONS=false
+      - CONFIG_DATABASE_PASSWORD=${CONFIG_DATABASE_PASSWORD:-}
+      - CONFIG_DATABASE_URL=jdbc:postgresql://srv-captain--$$cap_appname-db/$$cap_airbyte_db_name
+      - CONFIG_DATABASE_USER=${CONFIG_DATABASE_USER:-}
+      - CONFIGS_DATABASE_MINIMUM_FLYWAY_MIGRATION_VERSION=0.35.15.001
+      - CONFIG_ROOT=/data
+      - DATABASE_PASSWORD=$$cap_airbyte_db_password
+      - DATABASE_URL=jdbc:postgresql://srv-captain--$$cap_appname-db/$$cap_airbyte_db_name
+      - DATABASE_USER=$$cap_airbyte_db_username
+      - DEPLOYMENT_MODE=${DEPLOYMENT_MODE}
+      - INTERNAL_API_HOST=srv-captain--$$cap_appname-airbyte-server:8001
+      - JOBS_DATABASE_MINIMUM_FLYWAY_MIGRATION_VERSION=0.29.15.001
+      - JOB_MAIN_CONTAINER_CPU_LIMIT=${JOB_MAIN_CONTAINER_CPU_LIMIT}
+      - JOB_MAIN_CONTAINER_CPU_REQUEST=${JOB_MAIN_CONTAINER_CPU_REQUEST}
+      - JOB_MAIN_CONTAINER_MEMORY_LIMIT=${JOB_MAIN_CONTAINER_MEMORY_LIMIT}
+      - JOB_MAIN_CONTAINER_MEMORY_REQUEST=${JOB_MAIN_CONTAINER_MEMORY_REQUEST}
+      - LOCAL_DOCKER_MOUNT=/tmp/airbyte_local
+      - LOCAL_ROOT=/tmp/airbyte_local
+      - LOG_LEVEL=INFO
+      - LOG_CONNECTOR_MESSAGES=${LOG_CONNECTOR_MESSAGES}
+      - MAX_CHECK_WORKERS=5
+      - MAX_DISCOVER_WORKERS=5
+      - MAX_SPEC_WORKERS=5
+      - MAX_SYNC_WORKERS=5
+      - MAX_NOTIFY_WORKERS=5
+      - SHOULD_RUN_NOTIFY_WORKFLOW=${SHOULD_RUN_NOTIFY_WORKFLOW}
+      - NORMALIZATION_JOB_MAIN_CONTAINER_MEMORY_LIMIT=${NORMALIZATION_JOB_MAIN_CONTAINER_MEMORY_LIMIT}
+      - NORMALIZATION_JOB_MAIN_CONTAINER_MEMORY_REQUEST=${NORMALIZATION_JOB_MAIN_CONTAINER_MEMORY_REQUEST}
+      - NORMALIZATION_JOB_MAIN_CONTAINER_CPU_LIMIT=${NORMALIZATION_JOB_MAIN_CONTAINER_CPU_LIMIT}
+      - NORMALIZATION_JOB_MAIN_CONTAINER_CPU_REQUEST=${NORMALIZATION_JOB_MAIN_CONTAINER_CPU_REQUEST}
+      - SECRET_PERSISTENCE=${SECRET_PERSISTENCE}
+      - SYNC_JOB_MAX_ATTEMPTS=3
+      - SYNC_JOB_MAX_TIMEOUT_DAYS=3
+      - TEMPORAL_HOST=srv-captain--$$cap_appname-airbyte-temporal:7233
+      - TRACKING_STRATEGY=segment
+      - WEBAPP_URL=http://srv-captain--$$cap_appname-webapp:8000/
+      - WORKSPACE_DOCKER_MOUNT=airbyte_workspace
+      - WORKSPACE_ROOT=/tmp/workspace
+      - METRIC_CLIENT=${METRIC_CLIENT}
+      - OTEL_COLLECTOR_ENDPOINT=http://srv-captain--$$cap_appname-webapp:4317
+      - JOB_ERROR_REPORTING_STRATEGY=logging
+      - JOB_ERROR_REPORTING_SENTRY_DSN=${JOB_ERROR_REPORTING_SENTRY_DSN}
+      - ACTIVITY_MAX_ATTEMPT=${ACTIVITY_MAX_ATTEMPT}
+      - ACTIVITY_INITIAL_DELAY_BETWEEN_ATTEMPTS_SECONDS=${ACTIVITY_INITIAL_DELAY_BETWEEN_ATTEMPTS_SECONDS}
+      - ACTIVITY_MAX_DELAY_BETWEEN_ATTEMPTS_SECONDS=${ACTIVITY_MAX_DELAY_BETWEEN_ATTEMPTS_SECONDS}
+      - WORKFLOW_FAILURE_RESTART_DELAY_SECONDS=${WORKFLOW_FAILURE_RESTART_DELAY_SECONDS}
+      - AUTO_DETECT_SCHEMA=${AUTO_DETECT_SCHEMA}
+      - USE_STREAM_CAPABLE_STATE=true
+      - MICRONAUT_ENVIRONMENTS=control-plane
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - workspace:/tmp/workspace
+      - /tmp/airbyte_local:/tmp/airbyte_local
+    ports:
+      - 9000
+    networks:
+      - airbyte_internal
   $$cap_appname-server:
-    image: airbyte/server:${VERSION}
-    build:
-      dockerfile: Dockerfile
-      context: airbyte-server
-      labels:
-        io.airbyte.git-revision: ${GIT_REVISION}
+    image: airbyte/server:$$cap_airbyte_version
+    container_name: airbyte-server
+    restart: unless-stopped
+    environment:
+      - AIRBYTE_ROLE=${AIRBYTE_ROLE:-}
+      - AIRBYTE_VERSION=$$cap_airbyte_version
+      - CONFIG_DATABASE_PASSWORD=${CONFIG_DATABASE_PASSWORD:-}
+      - CONFIG_DATABASE_URL=jdbc:postgresql://srv-captain--$$cap_appname-db/$$cap_airbyte_db_name
+      - CONFIG_DATABASE_USER=${CONFIG_DATABASE_USER:-}
+      - CONFIGS_DATABASE_MINIMUM_FLYWAY_MIGRATION_VERSION=0.35.15.001
+      - CONFIG_ROOT=/data
+      - DATABASE_PASSWORD=$$cap_airbyte_db_password
+      - DATABASE_URL=jdbc:postgresql://srv-captain--$$cap_appname-db/$$cap_airbyte_db_name
+      - DATABASE_USER=$$cap_airbyte_db_username
+      - JOB_MAIN_CONTAINER_CPU_LIMIT=${JOB_MAIN_CONTAINER_CPU_LIMIT}
+      - JOB_MAIN_CONTAINER_CPU_REQUEST=${JOB_MAIN_CONTAINER_CPU_REQUEST}
+      - JOB_MAIN_CONTAINER_MEMORY_LIMIT=${JOB_MAIN_CONTAINER_MEMORY_LIMIT}
+      - JOB_MAIN_CONTAINER_MEMORY_REQUEST=${JOB_MAIN_CONTAINER_MEMORY_REQUEST}
+      - JOBS_DATABASE_MINIMUM_FLYWAY_MIGRATION_VERSION=0.29.15.001
+      - LOG_LEVEL=INFO
+      - NEW_SCHEDULER=${NEW_SCHEDULER}
+      - SECRET_PERSISTENCE=${SECRET_PERSISTENCE}
+      - TEMPORAL_HOST=srv-captain--$$cap_appname-airbyte-temporal:7233
+      - TRACKING_STRATEGY=segment
+      - JOB_ERROR_REPORTING_STRATEGY=logging
+      - JOB_ERROR_REPORTING_SENTRY_DSN=${JOB_ERROR_REPORTING_SENTRY_DSN}
+      - WEBAPP_URL=http://srv-captain--$$cap_appname-webapp:8000/
+      - WORKER_ENVIRONMENT=${WORKER_ENVIRONMENT}
+      - WORKSPACE_ROOT=/tmp/workspace
+      - GITHUB_STORE_BRANCH=${GITHUB_STORE_BRANCH}
+      - AUTO_DETECT_SCHEMA=false
+    ports:
+      - 8001
+    volumes:
+      - workspace:/tmp/workspace
+      - data:/data
+      - /tmp/airbyte_local:/tmp/airbyte_local
+    networks:
+      - airbyte_internal
   $$cap_appname-webapp:
-    image: airbyte/webapp:${VERSION}
-    build:
-      dockerfile: Dockerfile
-      context: airbyte-webapp
-      labels:
-        io.airbyte.git-revision: ${GIT_REVISION}
-  $$cap_appname-temporal:
-    image: airbyte/temporal:${VERSION}
-    build:
-      dockerfile: Dockerfile
-      context: airbyte-temporal
-      labels:
-        io.airbyte.git-revision: ${GIT_REVISION}
-  $$cap_appname-container-orchestrator:
-    image: airbyte/container-orchestrator:${VERSION}
-    build:
-      dockerfile: Dockerfile
-      context: airbyte-container-orchestrator
-      labels:
-        io.airbyte.git-revision: ${GIT_REVISION}
-  $$cap_appname-metric-reporter:
-    image: airbyte/metrics-reporter:${VERSION}
-    build:
-      dockerfile: Dockerfile
-      context: airbyte-metrics/reporter
-      labels:
-        io.airbyte.git-revision: ${GIT_REVISION}
+    image: airbyte/webapp:$$cap_airbyte_version
+    container_name: airbyte-webapp
+    restart: unless-stopped
+    ports:
+      - 80
+    environment:
+      - AIRBYTE_ROLE=${AIRBYTE_ROLE:-}
+      - AIRBYTE_VERSION=$$cap_airbyte_version
+      - API_URL=/api/v1/
+      - CONNECTOR_BUILDER_API_URL=/connector-builder-api
+      - INTERNAL_API_HOST=srv-captain--$$cap_appname-airbyte-server:8001
+      - CONNECTOR_BUILDER_API_HOST=srv-captain--$$cap_appname-airbyte-connector-builder-server:80
+      - OPENREPLAY=${OPENREPLAY:-}
+      - PAPERCUPS_STORYTIME=${PAPERCUPS_STORYTIME:-}
+      - TRACKING_STRATEGY=segment
+    networks:
+      - airbyte_internal
+  $$cap_appname-airbyte-temporal:
+    image: airbyte/temporal:latest
+    container_name: airbyte-temporal
+    restart: unless-stopped
+    environment:
+      - DB=postgresql
+      - DB_PORT=9000
+      - DYNAMIC_CONFIG_FILE_PATH=config/dynamicconfig/development.yaml
+      - LOG_LEVEL=INFO
+      - POSTGRES_PWD=$$cap_airbyte_db_password
+      - POSTGRES_SEEDS=$$cap_appname-db
+      - POSTGRES_USER=$$cap_airbyte_db_username
+    volumes:
+      - ./temporal/dynamicconfig:/etc/temporal/config/dynamicconfig
+    networks:
+      - airbyte_internal
+  $$cap_appname-airbyte-cron:
+    image: airbyte/cron:$$cap_airbyte_version
+    container_name: airbyte-cron
+    restart: unless-stopped
+    environment:
+      - AIRBYTE_VERSION=$$cap_airbyte_version
+      - CONFIGS_DATABASE_MINIMUM_FLYWAY_MIGRATION_VERSION=0.35.15.001
+      - DATABASE_PASSWORD=$$cap_airbyte_db_password
+      - DATABASE_URL=jdbc:postgresql://srv-captain--$$cap_appname-db/$$cap_airbyte_db_name
+      - DATABASE_USER=$$cap_airbyte_db_username
+      - DEPLOYMENT_MODE=${DEPLOYMENT_MODE}
+      - LOG_LEVEL=INFO
+      - REMOTE_CONNECTOR_CATALOG_URL=${REMOTE_CONNECTOR_CATALOG_URL}
+      - TEMPORAL_HISTORY_RETENTION_IN_DAYS=${TEMPORAL_HISTORY_RETENTION_IN_DAYS}
+      - UPDATE_DEFINITIONS_CRON_ENABLED=${UPDATE_DEFINITIONS_CRON_ENABLED}
+      - WORKSPACE_ROOT=/tmp/workspace
+      - MICRONAUT_ENVIRONMENTS=control-plane
+    volumes:
+      - workspace:/tmp/workspace
+    networks:
+      - airbyte_internal
+  $$cap_appname-airbyte-connector-builder-server:
+    image: airbyte/connector-builder-server:$$cap_airbyte_version
+    container_name: airbyte-connector-builder-server
+    restart: unless-stopped
+    ports:
+      - 80
+    environment:
+      - AIRBYTE_VERSION=$$cap_airbyte_version
+    networks:
+      - airbyte_internal
+  $$cap_appname-airbyte-proxy:
+    image: airbyte/proxy:latest
+    container_name: airbyte-proxy
+    restart: unless-stopped
+    ports:
+      - 8000:8000
+      - 8001:8001
+      - 8003:8003
+    environment:
+      - BASIC_AUTH_USERNAME=$$cap_airbyte_basic_auth_username
+      - BASIC_AUTH_PASSWORD=$$cap_airbyte_basic_auth_password
+      - BASIC_AUTH_PROXY_TIMEOUT=$$cap_airbyte_basic_auth_proxy_timeout
+    networks:
+      - airbyte_internal
+      - airbyte_public
+    depends_on:
+      - webapp
+      - server
+volumes:
+  workspace:
+    name: airbyte_workspace
+  # the data volume is only needed for backward compatibility; when users upgrade
+  # from an old Airbyte version that relies on file-based configs, the server needs
+  # to read this volume to copy their configs to the database
+  data:
+    name: airbyte_data
+  db:
+    name: airbyte_db
+networks:
+  airbyte_public:
+  airbyte_internal:
 
 caproverOneClickApp:
   variables:
-    - id: $$cap_airbyte_env
-      label: 'Airbyte ENV'
-      defaultValue: ''
-      validRegex: /^([a-zA-Z0-9-.\s])*$/
+    - id: $$cap_airbyte_version
+      label: 'Airbyte version'
+      defaultValue: '0.40.25'
+      description: ''
+      validRegex: /^([a-zA-Z0-9-.])*$/
+    - id: $$cap_airbyte_db_name
+      label: 'Database Name'
+      defaultValue: 'airbyte'
+      description: ''
+      validRegex: /^([a-zA-Z0-9-.])*$/
+    - id: $$cap_airbyte_db_username
+      label: 'Database User'
+      defaultValue: 'root'
+      description: ''
+      validRegex: /^([a-zA-Z0-9-.])*$/
+    - id: $$cap_airbyte_db_password
+      label: 'Database Password'
+      defaultValue: $$cap_gen_random_hex(16)
+      description: ''
+      validRegex: /^([a-zA-Z0-9-.])*$/
+    - id: $$cap_airbyte_basic_auth_username
+      label: 'Basic Auth Username'
+      defaultValue: 'admin'
+      description: ''
+    - id: $$cap_airbyte_basic_auth_password
+      label: 'Basic Auth Password'
+      defaultValue: $$cap_gen_random_hex(16)
+      description: ''
+    - id: $$cap_airbyte_basic_auth_proxy_timeout
+      label: 'Basic Auth timeout'
+      defaultValue: '600'
+      description: ''
   instructions:
     start: >-
-      Data integration is made simple, secure, and extensible. The new open-source standard to sync data from applications, APIs & databases to warehouses, lakes & other destinations.
+      All your data pipelines in minutes. Reliably
 
-      Airbyte is on a mission to make data integration pipelines a commodity.
-    end: AirByte is deployed and available as $$cap_appname
-  displayName: Chartbrew
+    end: Airbyte is deployed and available as $$cap_appname
+  displayName: Airbyte
   isOfficial: true
   description: Interactive dashboards and client reports
-  documentation: 'https://github.com/airbytehq/airbyte/tree/e378d40236b6a34e1c1cb481c8952735ec687d88/docs'
+  documentation: 'https://docs.airbyte.com/'
