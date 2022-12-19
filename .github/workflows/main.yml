@@ -1,9 +1,5 @@
-name: Publish One Click Apps
-
-on:
 name: Validate, Build & Deploy
 on:
-  workflow_dispatch: { }
   push:
     branches:
       - main
@@ -48,17 +44,4 @@ jobs:
             folder: dist
             git-config-name: SkayoBot
             git-config-email: frederike.gnampf@gmail.com
-            clean: true  push:
-    branches: [main]
-
-jobs:
-  build:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v1
-      - uses: actions/setup-node@v3.5.1
-        with:
-          node-version: 16
-      - run: npm ci && npm run publish
-        env:
-          GITHUB_PERSONAL_TOKEN: ${{secrets.GITHUB_PERSONAL_TOKEN}}
+            clean: true
