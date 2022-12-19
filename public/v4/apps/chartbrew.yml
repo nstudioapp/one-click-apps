@@ -32,12 +32,35 @@ services:
       CB_DB_NAME: $$cap_cb_db_name
       CB_DB_USERNAME: $$cap_cb_db_username
       CB_DB_PASSWORD: $$cap_cb_db_password
-      REACT_APP_CLIENT_HOST: $$cap_cb_react_app_client_host
-      REACT_APP_API_HOST: $$cap_cb_react_app_api_host
+      REACT_APP_CLIENT_HOST: http://srv-captain--$$cap_appname
+      REACT_APP_API_HOST: http://srv-captain--$$cap_appname-api
     caproverExtra:
       containerHttpPort: '4018'
     ports:
       - 4018:4018
+    depends_on:
+      - $$cap_appname-db
+    links:
+      - $$cap_appname-db
+
+  $$cap_appname-api:
+    image: razvanilin/chartbrew:latest
+    restart: always
+    environment:
+      CB_SECRET: $$cap_cb_secret
+      CB_API_HOST: $$cap_cb_api_host
+      CB_API_PORT: $$cap_cb_api_port
+      CB_DB_DIALECT: $$cap_cb_db_dialect
+      CD_DB_HOST: srv-captain--$$cap_appname-db
+      CB_DB_PORT: $$cap_cb_db_port
+      CB_DB_NAME: $$cap_cb_db_name
+      CB_DB_USERNAME: $$cap_cb_db_username
+      CB_DB_PASSWORD: $$cap_cb_db_password
+      REACT_APP_CLIENT_HOST: http://srv-captain--$$cap_appname
+      REACT_APP_API_HOST: http://srv-captain--$$cap_appname-api
+    caproverExtra:
+      containerHttpPort: '4019'
+    ports:
       - 4019:4019
     depends_on:
       - $$cap_appname-db
