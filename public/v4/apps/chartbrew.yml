@@ -10,10 +10,8 @@ services:
             MYSQL_USER: $$cap_cb_db_username
             MYSQL_PASSWORD: $$cap_cb_db_password
             MYSQL_ALLOW_EMPTY_PASSWORD: 1
-        caproverExtra:
-            notExposeAsWebApp: 'true'
         ports:
-            - 3306:3306
+            - 1101:3306
         expose:
             - 3306
         volumes:
@@ -24,6 +22,7 @@ services:
         restart: always
         environment:
             CB_SECRET: $$cap_cb_secret
+            NODE_ENV: production
             CB_API_HOST: $$cap_cb_api_host
             CB_API_PORT: $$cap_cb_api_port
             CB_DB_DIALECT: $$cap_cb_db_dialect
@@ -34,6 +33,10 @@ services:
             CB_DB_PASSWORD: $$cap_cb_db_password
             REACT_APP_CLIENT_HOST: http://srv-captain--$$cap_appname
             REACT_APP_API_HOST: http://srv-captain--$$cap_appname-api
+            CB_API_HOST_DEV: $$cap_cb_api_host
+            CB_API_HOST_PORT: $$cap_cb_api_port
+            REACT_APP_CLIENT_HOST_DEV: http://srv-captain--$$cap_appname
+            REACT_APP_API_HOST_DEV: http://srv-captain--$$cap_appname-api
         caproverExtra:
             containerHttpPort: '4018'
         ports:
@@ -48,6 +51,7 @@ services:
         restart: always
         environment:
             CB_SECRET: $$cap_cb_secret
+            NODE_ENV: production
             CB_API_HOST: $$cap_cb_api_host
             CB_API_PORT: $$cap_cb_api_port
             CB_DB_DIALECT: $$cap_cb_db_dialect
@@ -58,6 +62,10 @@ services:
             CB_DB_PASSWORD: $$cap_cb_db_password
             REACT_APP_CLIENT_HOST: http://srv-captain--$$cap_appname
             REACT_APP_API_HOST: http://srv-captain--$$cap_appname-api
+            CB_API_HOST_DEV: $$cap_cb_api_host
+            CB_API_HOST_PORT: $$cap_cb_api_port
+            REACT_APP_CLIENT_HOST_DEV: http://srv-captain--$$cap_appname
+            REACT_APP_API_HOST_DEV: http://srv-captain--$$cap_appname-api
         caproverExtra:
             containerHttpPort: '4019'
         ports:
@@ -79,12 +87,11 @@ caproverOneClickApp:
           validRegex: /^([^\s^\/])+$/
         - id: $$cap_cb_api_host
           label: 'API Host'
-          defaultValue: '0.0.0.0'
+          defaultValue: srv-captain--$$cap_appname-api
           description: ''
-          validRegex: /^([a-zA-Z0-9-.])*$/
         - id: $$cap_cb_api_port
           label: 'API Port'
-          defaultValue: '4019'
+          defaultValue: ''
           description: ''
           validRegex: /^([a-zA-Z0-9-.])*$/
         - id: $$cap_cb_db_dialect
@@ -94,7 +101,7 @@ caproverOneClickApp:
           validRegex: /^([a-zA-Z0-9-.])*$/
         - id: $$cap_cb_db_port
           label: 'Database Port'
-          defaultValue: '3306'
+          defaultValue: '1101'
           description: ''
           validRegex: /^([a-zA-Z0-9-.])*$/
         - id: $$cap_cb_db_name
@@ -114,11 +121,11 @@ caproverOneClickApp:
           validRegex: /^([a-zA-Z0-9-.])*$/
         - id: $$cap_cb_react_app_client_host
           label: 'React App Client Host'
-          defaultValue: 'http://localhost:4018'
+          defaultValue: 'https://srv-captain--$$cap_appname'
           description: ''
         - id: $$cap_cb_react_app_api_host
           label: 'React App API Host'
-          defaultValue: 'http://localhost:4019'
+          defaultValue: 'https://srv-captain--$$cap_appname-api'
     instructions:
         start: >-
             Chartbrew Interactive dashboards and client reports Track the most important metrics from all your data sources in one place
