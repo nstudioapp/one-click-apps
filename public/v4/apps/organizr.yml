@@ -1,7 +1,7 @@
 captainVersion: 4
 services:
   $$cap_appname:
-    image: organizr/organizr:$$cap_version
+    image: organizr/organizr:latest
     environment:
       TZ: '$$cap_tz'
       PHP_TZ: '$$cap_tz'
@@ -27,7 +27,7 @@ caproverOneClickApp:
 
     - id: '$$cap_branch'
       label: Organizr branch
-      defaultValue: 'latest'
+      defaultValue: 'v2-master'
       description: Branch name to use
   instructions:
     start: |-
